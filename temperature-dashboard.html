@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Temperatura</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    header h1 { font-size: 1.5rem; font-weight: 700; }
+    header span { font-size: 0.85rem; color: #94a3b8; }
+
+    #location-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    #location-bar .city { color: #e2e8f0; font-weight: 600; font-size: 1rem; }
+
+    #status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    #status-dot.loading { background: #fb923c; box-shadow: 0 0 6px #fb923c; }
+    #status-dot.error   { background: #f87171; box-shadow: 0 0 6px #f87171; animation: none; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border: 1px solid #334155;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-3px); }
+
+    .card-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+    .card-value { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+    .card-sub   { font-size: 0.78rem; color: #64748b; }
+
+    .badge {
+      display: inline-block; font-size: 0.7rem;
+      padding: 2px 8px; border-radius: 999px;
+      font-weight: 600; align-self: flex-start;
+    }
+    .badge-ok   { background:#16a34a22;color:#4ade80;border:1px solid #4ade8044; }
+    .badge-warm { background:#d9770622;color:#fb923c;border:1px solid #fb923c44; }
+    .badge-hot  { background:#dc262622;color:#f87171;border:1px solid #f8717144; }
+    .badge-cold { background:#0ea5e922;color:#38bdf8;border:1px solid #38bdf844; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media(max-width:640px){ .two-col{ grid-template-columns:1fr; } }
+
+    .panel {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #334155;
+    }
+
+    .panel h2 { font-size: 0.95rem; color: #cbd5e1; margin-bottom: 18px; }
+
+    /* Chart */
+    .chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 150px;
+    }
+    .bar-wrap {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; gap: 4px; height: 100%; justify-content: flex-end;
+    }
+    .bar-val  { font-size: 0.68rem; color: #94a3b8; }
+    .bar      { width: 100%; border-radius: 6px 6px 0 0; cursor: pointer; transition: height 0.6s cubic-bezier(.4,0,.2,1); }
+    .bar:hover{ opacity: 0.8; }
+    .bar-label{ font-size: 0.65rem; color: #64748b; margin-top: 4px; }
+
+    /* Gauge */
+    .gauge-wrap { display: flex; flex-direction: column; align-items: center; }
+    svg.gauge  { overflow: visible; }
+    .legend    { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+    .legend-item{ display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: #94a3b8; }
+    .dot       { width: 9px; height: 9px; border-radius: 50%; }
+
+    /* Weather details row */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .detail-card {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 14px;
+      border: 1px solid #1e293b;
+    }
+    .detail-card .d-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .detail-card .d-val   { font-size: 1.4rem; font-weight: 700; }
+    .detail-card .d-unit  { font-size: 0.72rem; color: #64748b; margin-top: 2px; }
+
+    #refresh-btn {
+      background: #1e293b; border: 1px solid #334155;
+      color: #94a3b8; padding: 6px 14px; border-radius: 8px;
+      font-size: 0.8rem; cursor: pointer; transition: background 0.2s;
+    }
+    #refresh-btn:hover { background: #334155; color: #e2e8f0; }
+
+    .skeleton { background: #334155; border-radius: 4px; animation: shimmer 1.2s infinite; }
+    @keyframes shimmer { 0%,100%{opacity:.6} 50%{opacity:1} }
+
+    /* 7-day forecast */
+    .forecast-panel {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid #334155;
+      margin-top: 24px;
+    }
+    .forecast-panel h2 { font-size: 0.95rem; color: #cbd5e1; margin-bottom: 18px; }
+    .forecast-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+    @media(max-width:640px){ .forecast-row{ grid-template-columns: repeat(4,1fr); } }
+    .forecast-day {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #1e293b;
+      transition: transform 0.15s, border-color 0.15s;
+      cursor: default;
+    }
+    .forecast-day:hover { transform: translateY(-3px); border-color: #334155; }
+    .forecast-day.today { border-color: #3b82f6; background: #1e3a5f22; }
+    .fc-weekday  { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .fc-date     { font-size: 0.65rem; color: #475569; }
+    .fc-emoji    { font-size: 1.6rem; line-height: 1; }
+    .fc-max      { font-size: 1.05rem; font-weight: 700; }
+    .fc-min      { font-size: 0.8rem; color: #64748b; }
+    .fc-rain     { font-size: 0.65rem; color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌡️ Dashboard de Temperatura</h1>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button id="refresh-btn" onclick="fetchWeather()">↻ Atualizar</button>
+    <span id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div id="location-bar">
+  <div id="status-dot" class="loading"></div>
+  <span>Detectando localização...</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Temperatura Atual</div>
+    <div class="card-value" id="temp-current" style="color:#94a3b8">--°C</div>
+    <div class="badge badge-ok" id="badge-current">–</div>
+    <div style="font-size:0.75rem;color:#64748b;margin-top:2px" id="feels-like">Sensação: --°C</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Mínima / Máxima Hoje</div>
+    <div style="display:flex;gap:12px;align-items:baseline">
+      <div class="card-value" id="temp-min" style="color:#38bdf8;font-size:1.7rem">--</div>
+      <div style="color:#475569;font-size:1.2rem">/</div>
+      <div class="card-value" id="temp-max" style="color:#fb923c;font-size:1.7rem">--</div>
+    </div>
+    <div class="card-sub">°C — previsão do dia</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Umidade</div>
+    <div class="card-value" id="humidity" style="color:#a78bfa">--%</div>
+    <div class="card-sub">Umidade relativa do ar</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Vento</div>
+    <div class="card-value" id="wind" style="color:#34d399">-- km/h</div>
+    <div class="card-sub" id="wind-dir">Direção: --</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="panel">
+    <h2>Histórico — Últimas 24h (de 3h em 3h)</h2>
+    <div class="chart" id="chart">
+      <div style="color:#475569;font-size:0.8rem;margin:auto">Aguardando dados...</div>
+    </div>
+  </div>
+
+  <div class="panel gauge-wrap">
+    <h2 style="align-self:flex-start">Termômetro em Tempo Real</h2>
+    <svg class="gauge" width="200" height="185" viewBox="0 0 200 200">
+      <path d="M30,150 A90,90 0 0,1 170,150" fill="none" stroke="#1e3a5f" stroke-width="18" stroke-linecap="round"/>
+      <path id="gauge-arc" d="M30,150 A90,90 0 0,1 170,150" fill="none" stroke="#38bdf8"
+        stroke-width="18" stroke-linecap="round" stroke-dasharray="0 283"
+        style="transition:stroke-dasharray 0.8s,stroke 0.8s"/>
+      <line id="gauge-needle" x1="100" y1="100" x2="100" y2="22"
+        stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"
+        style="transform-origin:100px 100px;transform:rotate(0deg);transition:transform 0.8s"/>
+      <circle cx="100" cy="100" r="6" fill="#e2e8f0"/>
+      <text x="22"  y="170" fill="#475569" font-size="11">-20°</text>
+      <text x="90"  y="18"  fill="#475569" font-size="11">40°</text>
+      <text x="160" y="170" fill="#475569" font-size="11">100°</text>
+      <text id="gauge-val" x="100" y="138" text-anchor="middle"
+        fill="#e2e8f0" font-size="22" font-weight="700">--°C</text>
+      <text id="gauge-city" x="100" y="155" text-anchor="middle"
+        fill="#64748b" font-size="9">--</text>
+    </svg>
+    <div class="legend">
+      <div class="legend-item"><div class="dot" style="background:#38bdf8"></div>Frio (&lt;10°)</div>
+      <div class="legend-item"><div class="dot" style="background:#4ade80"></div>Confortável</div>
+      <div class="legend-item"><div class="dot" style="background:#fb923c"></div>Quente</div>
+      <div class="legend-item"><div class="dot" style="background:#f87171"></div>Crítico</div>
+    </div>
+  </div>
+</div>
+
+<div class="forecast-panel">
+  <h2>📅 Previsão — Próximos 7 Dias</h2>
+  <div class="forecast-row" id="forecast-row">
+    <div style="color:#475569;font-size:0.8rem;grid-column:1/-1;text-align:center">Aguardando dados...</div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:24px">
+  <h2>Condições Detalhadas</h2>
+  <div class="details-grid">
+    <div class="detail-card">
+      <div class="d-label">Condição</div>
+      <div class="d-val" id="condition" style="font-size:1.1rem">--</div>
+    </div>
+    <div class="detail-card">
+      <div class="d-label">Precipitação</div>
+      <div class="d-val" id="precip" style="color:#38bdf8">--</div>
+      <div class="d-unit">mm</div>
+    </div>
+    <div class="detail-card">
+      <div class="d-label">Pressão</div>
+      <div class="d-val" id="pressure" style="color:#a78bfa">--</div>
+      <div class="d-unit">hPa</div>
+    </div>
+    <div class="detail-card">
+      <div class="d-label">Visibilidade</div>
+      <div class="d-val" id="visibility" style="color:#34d399">--</div>
+      <div class="d-unit">km</div>
+    </div>
+    <div class="detail-card">
+      <div class="d-label">Índice UV</div>
+      <div class="d-val" id="uv" style="color:#fb923c">--</div>
+      <div class="d-unit">de 11</div>
+    </div>
+    <div class="detail-card">
+      <div class="d-label">Atualizado</div>
+      <div class="d-val" id="updated-at" style="font-size:1rem;color:#94a3b8">--</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Utils ──────────────────────────────────────────────────────────────────
+  function colorFor(t) {
+    if (t < 10) return '#38bdf8';
+    if (t < 28) return '#4ade80';
+    if (t < 40) return '#fb923c';
+    return '#f87171';
+  }
+  function badgeFor(t) {
+    if (t < 10)  return ['❄️ Frio', 'badge-cold'];
+    if (t < 28)  return ['✅ Confortável', 'badge-ok'];
+    if (t < 40)  return ['🔥 Quente', 'badge-warm'];
+    return ['🚨 Crítico', 'badge-hot'];
+  }
+  function wmoLabel(code) {
+    const map = {
+      0:'Céu limpo',1:'Principalmente limpo',2:'Parcialmente nublado',3:'Nublado',
+      45:'Neblina',48:'Neblina gelada',51:'Garoa leve',53:'Garoa',55:'Garoa forte',
+      61:'Chuva leve',63:'Chuva',65:'Chuva forte',71:'Neve leve',73:'Neve',75:'Neve forte',
+      80:'Pancadas de chuva',81:'Chuva moderada',82:'Chuva forte',95:'Trovoada',
+      96:'Trovoada c/ granizo',99:'Trovoada c/ granizo forte'
+    };
+    return map[code] ?? `Código ${code}`;
+  }
+  function wmoEmoji(code) {
+    if (code === 0) return '☀️';
+    if (code <= 2)  return '🌤️';
+    if (code <= 3)  return '☁️';
+    if (code <= 48) return '🌫️';
+    if (code <= 67) return '🌧️';
+    if (code <= 77) return '❄️';
+    if (code <= 82) return '🌦️';
+    return '⛈️';
+  }
+  function windDirLabel(deg) {
+    const dirs = ['N','NE','L','SE','S','SO','O','NO'];
+    return dirs[Math.round(deg / 45) % 8];
+  }
+
+  // ── Clock ──────────────────────────────────────────────────────────────────
+  setInterval(() => {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('pt-BR');
+  }, 1000);
+
+  // ── Gauge ──────────────────────────────────────────────────────────────────
+  const GAUGE_LEN = 283;
+  function renderGauge(t) {
+    const pct = Math.min(1, Math.max(0, (t + 20) / 120));
+    const arc = document.getElementById('gauge-arc');
+    arc.setAttribute('stroke-dasharray', `${pct * GAUGE_LEN} ${GAUGE_LEN}`);
+    arc.setAttribute('stroke', colorFor(t));
+    const deg = -90 + pct * 180;
+    document.getElementById('gauge-needle').style.transform = `rotate(${deg}deg)`;
+    document.getElementById('gauge-val').textContent = `${t}°C`;
+  }
+
+  // ── Chart ──────────────────────────────────────────────────────────────────
+  function renderChart(times, temps) {
+    const el = document.getElementById('chart');
+    el.innerHTML = '';
+    const maxT = Math.max(...temps) + 3;
+    const minT = Math.min(...temps) - 3;
+    times.forEach((time, i) => {
+      const t   = temps[i];
+      const pct = ((t - minT) / (maxT - minT)) * 100;
+      const lbl = time.slice(11, 16);
+      const wrap = document.createElement('div');
+      wrap.className = 'bar-wrap';
+      wrap.innerHTML = `
+        <div class="bar-val">${t}°</div>
+        <div class="bar" title="${t}°C às ${lbl}" style="height:${pct}%;background:${colorFor(t)}"></div>
+        <div class="bar-label">${lbl}</div>`;
+      el.appendChild(wrap);
+    });
+  }
+
+  // ── 7-day forecast ─────────────────────────────────────────────────────────
+  const WEEKDAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const MONTHS   = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+  function renderForecast(daily) {
+    const el = document.getElementById('forecast-row');
+    el.innerHTML = '';
+    const today = new Date().toISOString().slice(0,10);
+
+    daily.time.forEach((dateStr, i) => {
+      const d      = new Date(dateStr + 'T12:00:00');
+      const isToday= dateStr === today;
+      const wd     = WEEKDAYS[d.getDay()];
+      const dm     = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+      const tMax   = daily.temperature_2m_max[i];
+      const tMin   = daily.temperature_2m_min[i];
+      const code   = daily.weather_code[i];
+      const rain   = daily.precipitation_sum[i];
+      const rainPct= daily.precipitation_probability_max[i] ?? 0;
+      const wind   = daily.wind_speed_10m_max[i];
+
+      const card = document.createElement('div');
+      card.className = 'forecast-day' + (isToday ? ' today' : '');
+      card.title = `Vento máx: ${wind} km/h`;
+      card.innerHTML = `
+        <div class="fc-weekday">${isToday ? 'Hoje' : wd}</div>
+        <div class="fc-date">${dm}</div>
+        <div class="fc-emoji">${wmoEmoji(code)}</div>
+        <div class="fc-rain" style="color:${rainPct >= 60 ? '#38bdf8' : '#475569'}">💧 ${rainPct}%</div>
+        <div class="fc-max" style="color:${colorFor(tMax)}">${tMax}°</div>
+        <div class="fc-min">${tMin}°</div>
+        ${rain > 0 ? `<div class="fc-rain" style="color:#64748b">${rain} mm</div>` : ''}`;
+      el.appendChild(card);
+    });
+  }
+
+  // ── Main fetch ─────────────────────────────────────────────────────────────
+  let cityName = '';
+  let _lat = -23.55, _lon = -46.63;
+
+  async function doFetch(lat, lon) {
+    _lat = lat; _lon = lon;
+    const dot = document.getElementById('status-dot');
+    dot.className = 'loading';
+
+    try {
+      // Current + hourly + daily
+      const url = `https://api.open-meteo.com/v1/forecast` +
+        `?latitude=${lat}&longitude=${lon}` +
+        `&current=temperature_2m,relative_humidity_2m,apparent_temperature,` +
+        `weather_code,wind_speed_10m,wind_direction_10m,precipitation,` +
+        `surface_pressure,visibility,uv_index` +
+        `&hourly=temperature_2m` +
+        `&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum,precipitation_probability_max,wind_speed_10m_max` +
+        `&timezone=auto&forecast_days=7`;
+
+      const res  = await fetch(url);
+      const data = await res.json();
+      const c    = data.current;
+
+      const temp    = c.temperature_2m;
+      const feels   = c.apparent_temperature;
+      const humidity= c.relative_humidity_2m;
+      const wind    = c.wind_speed_10m;
+      const windDir = c.wind_direction_10m;
+      const code    = c.weather_code;
+      const precip  = c.precipitation ?? 0;
+      const pressure= c.surface_pressure;
+      const vis     = c.visibility != null ? (c.visibility / 1000).toFixed(1) : '--';
+      const uv      = c.uv_index != null ? c.uv_index.toFixed(1) : '--';
+
+      const tMin = data.daily.temperature_2m_min[0];
+      const tMax = data.daily.temperature_2m_max[0];
+
+      // Hourly — last 24h (8 samples of 3h)
+      const now   = new Date();
+      const nowH  = now.getHours();
+      const allTimes = data.hourly.time;
+      const allTemps = data.hourly.temperature_2m;
+      const idxNow   = allTimes.findIndex(t => t.slice(11,13) == String(nowH).padStart(2,'0'));
+      const start    = Math.max(0, (idxNow < 0 ? allTimes.length-1 : idxNow) - 7);
+      const sliceT   = allTimes.slice(start, start + 8);
+      const sliceV   = allTemps.slice(start, start + 8);
+
+      // Update DOM
+      const [lbl, cls] = badgeFor(temp);
+
+      const elCur = document.getElementById('temp-current');
+      elCur.textContent  = `${temp}°C`;
+      elCur.style.color  = colorFor(temp);
+
+      const badge = document.getElementById('badge-current');
+      badge.textContent  = lbl;
+      badge.className    = `badge ${cls}`;
+
+      document.getElementById('feels-like').textContent  = `Sensação: ${feels}°C`;
+      document.getElementById('temp-min').textContent    = `${tMin}`;
+      document.getElementById('temp-max').textContent    = `${tMax}`;
+      document.getElementById('humidity').textContent    = `${humidity}%`;
+      document.getElementById('wind').textContent        = `${wind} km/h`;
+      document.getElementById('wind-dir').textContent    = `Direção: ${windDirLabel(windDir)} (${windDir}°)`;
+      document.getElementById('condition').textContent   = `${wmoEmoji(code)} ${wmoLabel(code)}`;
+      document.getElementById('precip').textContent      = precip;
+      document.getElementById('pressure').textContent    = pressure ? Math.round(pressure) : '--';
+      document.getElementById('visibility').textContent  = vis;
+      document.getElementById('uv').textContent          = uv;
+      document.getElementById('updated-at').textContent  = new Date().toLocaleTimeString('pt-BR');
+
+      renderChart(sliceT, sliceV);
+      renderGauge(temp);
+      renderForecast(data.daily);
+      document.getElementById('gauge-city').textContent = cityName;
+
+      dot.className = '';
+    } catch (e) {
+      console.error(e);
+      dot.className = 'error';
+      document.getElementById('location-bar').innerHTML =
+        `<div id="status-dot" class="error"></div> Erro ao buscar dados. Verifique a conexão.`;
+    }
+  }
+
+  // ── Localização por IP (sem permissão de browser) ─────────────────────────
+  async function init() {
+    const bar = document.getElementById('location-bar');
+
+    try {
+      // ip-api.com: gratuito, sem chave, detecta cidade pelo IP
+      const gd = await fetch('https://ip-api.com/json/?fields=status,city,regionName,countryCode,lat,lon&lang=pt-BR')
+        .then(r => r.json());
+
+      if (gd.status !== 'success') throw new Error('falhou');
+
+      cityName = `${gd.city}, ${gd.regionName} – ${gd.countryCode}`;
+      bar.innerHTML = `
+        <div id="status-dot"></div>
+        <span>Dados em tempo real para</span>
+        <span class="city">📍 ${cityName}</span>
+        <span style="color:#475569">· Open-Meteo · ip-api.com</span>`;
+
+      doFetch(gd.lat, gd.lon);
+      setInterval(() => doFetch(_lat, _lon), 5 * 60 * 1000);
+
+    } catch {
+      // Fallback: GPS do browser
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async pos => {
+            const { latitude: lat, longitude: lon } = pos.coords;
+            try {
+              const gd = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`, { headers: { 'Accept-Language': 'pt-BR' } }).then(r => r.json());
+              const city    = gd.address?.city || gd.address?.town || gd.address?.village || gd.address?.county || 'Local';
+              const state   = gd.address?.state_code || gd.address?.state || '';
+              const country = gd.address?.country_code?.toUpperCase() || '';
+              cityName = `${city}${state ? ', ' + state : ''}${country ? ' – ' + country : ''}`;
+            } catch { cityName = `${lat.toFixed(2)}, ${lon.toFixed(2)}`; }
+            bar.innerHTML = `<div id="status-dot"></div> <span>Dados em tempo real para</span> <span class="city">📍 ${cityName}</span> <span style="color:#475569">· Open-Meteo</span>`;
+            doFetch(lat, lon);
+            setInterval(() => doFetch(_lat, _lon), 5 * 60 * 1000);
+          },
+          () => {
+            cityName = 'São Paulo, SP – BR';
+            bar.innerHTML = `<div id="status-dot"></div> <span class="city">📍 ${cityName} (padrão)</span>`;
+            doFetch(-23.55, -46.63);
+          },
+          { timeout: 4000 }
+        );
+      } else {
+        cityName = 'São Paulo, SP – BR';
+        bar.innerHTML = `<div id="status-dot"></div> <span class="city">📍 ${cityName} (padrão)</span>`;
+        doFetch(-23.55, -46.63);
+      }
+    }
+  }
+
+  // Botão atualizar — usa coordenadas já detectadas
+  window.fetchWeather = () => doFetch(_lat, _lon);
+
+  init();
+</script>
+</body>
+</html>
