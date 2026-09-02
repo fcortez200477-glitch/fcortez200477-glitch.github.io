@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: urban_mobility
+      POSTGRES_USER: mobility_app
+      POSTGRES_PASSWORD: change_me
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mobility_app -d urban_mobility']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgres://mobility_app:change_me@db:5432/urban_mobility
+      JWT_SECRET: change_me_to_a_long_random_secret
+      CORS_ORIGIN: '*'
+    ports:
+      - '3000:3000'
+
+volumes:
+  db_data:
