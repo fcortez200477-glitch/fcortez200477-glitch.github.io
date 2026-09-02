@@ -1,4 +1,8 @@
-# Urban Mobility Backend
+<p align="center">
+  <img src="./assets/brand/moblytix-logo.svg" alt="Moblytix" width="360">
+</p>
+
+# Moblytix — Backend de Mobilidade Urbana
 
 Backend de API para gestão de **mobilidade urbana**, construído em **Node.js + TypeScript + Express**,
 com **PostgreSQL + PostGIS** para armazenamento e consulta de dados espaciais (posições de veículos,

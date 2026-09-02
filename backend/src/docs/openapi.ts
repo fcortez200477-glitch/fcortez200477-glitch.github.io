@@ -5,12 +5,12 @@ export const openapiSpec = swaggerJsdoc({
   definition: {
     openapi: '3.0.3',
     info: {
-      title: 'Urban Mobility Backend API',
+      title: 'Moblytix API',
       version: '1.0.0',
       description:
-        'API de backend para gestao de mobilidade urbana: monitoramento de transporte publico, ' +
-        'controle de trafego, gestao de incidentes, cadastros centrais e relatorios urbanos. ' +
-        'Dados espaciais armazenados em PostgreSQL com a extensao PostGIS.',
+        'Moblytix — plataforma de backend para gestao de mobilidade urbana: monitoramento de ' +
+        'transporte publico, controle de trafego, gestao de incidentes, cadastros centrais e ' +
+        'relatorios urbanos. Dados espaciais armazenados em PostgreSQL com a extensao PostGIS.',
     },
     servers: [{ url: env.API_PREFIX, description: 'API atual' }],
     tags: [
