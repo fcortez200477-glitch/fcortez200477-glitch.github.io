@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="./assets/brand/moblytix-logo.svg" alt="Moblytix" width="360">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/brand/moblytix-logo-dark.svg">
+    <img src="./assets/brand/moblytix-logo.svg" alt="Moblytix" width="380">
+  </picture>
 </p>
 
 # Moblytix — Backend de Mobilidade Urbana
@@ -103,6 +106,12 @@ docker compose exec api npm run seed
 ```bash
 npm test
 ```
+
+## Marca
+
+Logotipo, símbolo, variantes para fundo claro/escuro, versão monocromática e exports PNG
+(favicon/app icon) ficam em [`assets/brand/`](./assets/brand/), com as regras de uso, cores e
+tipografia em [`assets/brand/BRAND.md`](./assets/brand/BRAND.md).
 
 ## Scripts
 
