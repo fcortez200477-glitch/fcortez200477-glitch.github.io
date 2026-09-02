@@ -76,14 +76,40 @@ Em produção, aponte `VITE_API_URL` para a URL pública da API (ex.: `https://a
 e garanta que essa origem esteja liberada no `CORS_ORIGIN` do backend. Por ser um SPA com
 rotas no cliente, o servidor estático precisa redirecionar todas as rotas para `index.html`.
 
+## Mapas
+
+A base cartográfica padrão é o **OpenStreetMap** — gratuito, sem chave de API e sem
+cadastro. Se as ruas não aparecerem (rede corporativa, proxy, firewall), a interface
+avisa em vez de mostrar um retângulo vazio.
+
+Para trocar de provedor, basta configurar duas variáveis — nenhuma mudança de código:
+
+```bash
+VITE_MAP_TILE_URL=https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png
+VITE_MAP_ATTRIBUTION=&copy; OpenStreetMap, &copy; CARTO
+```
+
+Alternativas gratuitas comuns: **CARTO** (visual claro, combina com a interface),
+**MapTiler** e **Stadia** (exigem chave, têm plano gratuito) ou um servidor de tiles
+próprio. A política de uso do OpenStreetMap pede atribuição visível e desaconselha
+volume alto de requisições — para produção com muitos usuários, prefira um provedor
+dedicado ou hospede seus próprios tiles.
+
 ## Demonstração sem backend
 
 Para apresentações a clientes ou avaliação da interface, existe uma build que gera a
 aplicação navegável num **único arquivo HTML**, sem precisar de API nem banco:
 
 ```bash
+npm run demo:tiles    # opcional, uma vez: baixa e embute a base cartográfica
 npm run build:demo    # gera demo/moblytix-demo.html
 ```
+
+O passo `demo:tiles` existe porque páginas publicadas normalmente **bloqueiam imagens
+de outros domínios** — sem ele o mapa da demonstração fica só com uma malha de
+referência (marcadores e rotas continuam nas posições corretas). O script baixa apenas
+os tiles da área coberta pelos dados, com intervalo entre requisições, e os embute como
+data URI. Precisa de acesso à internet e roda uma única vez.
 
 O arquivo pode ser aberto direto no navegador, anexado num e-mail ou hospedado em
 qualquer lugar. O código da aplicação não muda — [`demo/vite.demo.config.ts`](./demo/vite.demo.config.ts)
@@ -101,5 +127,6 @@ da API sobre PostgreSQL/PostGIS, então os números são coerentes entre si. As 
 - `npm run dev` — servidor de desenvolvimento com HMR
 - `npm run build` — typecheck + build de produção
 - `npm run build:demo` — gera a demonstração em arquivo único (`demo/moblytix-demo.html`)
+- `npm run demo:tiles` — baixa e embute a base cartográfica usada pela demonstração
 - `npm run preview` — serve o build gerado
 - `npm run typecheck` — apenas a verificação de tipos

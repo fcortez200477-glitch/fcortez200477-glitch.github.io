@@ -7,9 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:demo": "vite build --config demo/vite.demo.config.ts && node demo/bundle.mjs",
+    "demo:tiles": "node demo/fetch-tiles.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit",
-    "build:demo": "vite build --config demo/vite.demo.config.ts && node demo/bundle.mjs"
+    "typecheck": "tsc -b --noEmit"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.23",

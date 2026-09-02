@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
@@ -14,6 +14,20 @@ const DEFAULT_CENTER: LatLngExpression = (() => {
 })();
 
 const DEFAULT_ZOOM = Number(import.meta.env.VITE_MAP_ZOOM ?? 13) || 13;
+
+/**
+ * Base cartografica. O padrao e o OpenStreetMap, gratuito e sem chave de API.
+ * Para trocar de provedor (CARTO, MapTiler, Stadia, servidor proprio) basta
+ * definir VITE_MAP_TILE_URL e VITE_MAP_ATTRIBUTION — nenhuma mudanca de codigo.
+ * A politica de uso do OSM pede atribuicao visivel e desaconselha volume alto
+ * de requisicoes: em producao, prefira um provedor dedicado.
+ */
+const TILE_URL =
+  import.meta.env.VITE_MAP_TILE_URL ?? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+const TILE_ATTRIBUTION =
+  import.meta.env.VITE_MAP_ATTRIBUTION ??
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
 /** Reenquadra o mapa quando o conjunto de pontos muda. */
 function FitBounds({ bounds }: { bounds: LatLngBoundsExpression | null }) {
@@ -33,16 +47,36 @@ export function MapView({
   bounds?: LatLngBoundsExpression | null;
   height?: number;
 }) {
+  // Sem rede (ou com o provedor bloqueado) o Leaflet apenas nao pinta os tiles,
+  // deixando um retangulo vazio sem explicacao. Avisamos explicitamente.
+  const [tilesFailed, setTilesFailed] = useState(false);
+
   return (
-    <div style={{ height }} className="overflow-hidden rounded-xl border border-slate-200">
+    <div
+      style={{ height }}
+      className="relative overflow-hidden rounded-xl border border-slate-200"
+    >
       <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} scrollWheelZoom>
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={TILE_ATTRIBUTION}
+          url={TILE_URL}
+          eventHandlers={{
+            tileerror: () => setTilesFailed(true),
+            tileload: () => setTilesFailed(false),
+          }}
         />
         <FitBounds bounds={bounds} />
         {children}
       </MapContainer>
+
+      {tilesFailed && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex justify-center p-2">
+          <p className="pointer-events-auto rounded-lg bg-amber-50/95 px-3 py-1.5 text-xs text-amber-900 shadow-sm ring-1 ring-amber-200">
+            Base cartográfica indisponível — as posições continuam corretas. Verifique a
+            conexão ou configure outro provedor em <code>VITE_MAP_TILE_URL</code>.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

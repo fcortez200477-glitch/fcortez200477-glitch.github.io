@@ -9,6 +9,9 @@ const APP = path.resolve(DEMO, '..');
 
 const norm = (id: string) => id.split('?')[0].replace(/\\/g, '/');
 
+/** Base cartografica embutida por "npm run demo:tiles" (opcional). */
+const hasTiles = fs.existsSync(path.join(DEMO, 'tiles.json'));
+
 /**
  * Build de demonstracao: gera uma versao navegavel da interface sem backend,
  * para apresentacoes e avaliacao da UI. O codigo da aplicacao nao muda —
@@ -36,10 +39,42 @@ function demoPlugin(): Plugin {
       }
 
       if (file.endsWith('/src/components/MapView.tsx')) {
-        return code.replace(
-          /<TileLayer[\s\S]*?\/>/,
-          '<>{/* base cartografica indisponivel na demonstracao estatica */}</>',
-        );
+        // Paginas publicadas bloqueiam imagens externas, entao a camada de tiles
+        // remota nunca carregaria. Se "npm run demo:tiles" ja baixou a base,
+        // cada tile entra como ImageOverlay com seus limites geograficos; caso
+        // contrario o mapa fica so com a malha de referencia.
+        const replacement = hasTiles
+          ? `<>
+              {(demoTiles.tiles as { bounds: [[number, number], [number, number]]; uri: string }[]).map(
+                (t, i) => <ImageOverlay key={i} url={t.uri} bounds={t.bounds} />,
+              )}
+            </>`
+          : '<>{/* base cartografica nao embutida: rode "npm run demo:tiles" */}</>';
+
+        let next = code.replace(/<TileLayer[\s\S]*?\/>/, replacement);
+
+        if (hasTiles) {
+          next = next
+            .replace(
+              "import { MapContainer, TileLayer, useMap } from 'react-leaflet';",
+              "import { MapContainer, ImageOverlay, useMap } from 'react-leaflet';\n" +
+                `import demoTiles from '${path.join(DEMO, 'tiles.json').replace(/\\/g, '/')}';`,
+            )
+            // Sem requisicao de tile nao ha o que falhar; o aviso some.
+            .replace(
+              'const [tilesFailed, setTilesFailed] = useState(false);',
+              'const tilesFailed = false;',
+            )
+            // A atribuicao do provedor continua obrigatoria e visivel.
+            .replace(
+              '      </MapContainer>',
+              '      </MapContainer>\n' +
+                '      <p className="absolute bottom-0 right-0 z-[500] bg-white/80 px-1.5 py-0.5 text-[10px] text-slate-600"\n' +
+                '         dangerouslySetInnerHTML={{ __html: demoTiles.attribution as string }} />',
+            );
+        }
+
+        return next;
       }
 
       return null;
