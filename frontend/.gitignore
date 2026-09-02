@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.log
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+demo/dist/
+demo/moblytix-demo.html
+demo/tiles.json
