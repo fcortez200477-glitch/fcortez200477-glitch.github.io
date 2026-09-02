@@ -4,6 +4,7 @@ import { Marker, Popup } from 'react-leaflet';
 import type { LatLngBoundsExpression } from 'leaflet';
 import {
   CartesianGrid,
+  Legend,
   Line as ChartLine,
   LineChart,
   ResponsiveContainer,
@@ -225,6 +226,7 @@ export function Traffic() {
                       <XAxis dataKey="hora" tick={{ fontSize: 12, fill: '#64748B' }} tickLine={false} />
                       <YAxis tick={{ fontSize: 12, fill: '#64748B' }} tickLine={false} axisLine={false} />
                       <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #E2E8F0', fontSize: 13 }} />
+                      <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
                       <ChartLine
                         type="monotone"
                         dataKey="velocidade"

@@ -65,18 +65,27 @@ transportRouter.get(
       lng: number;
       radiusMeters: number;
     };
+    // O raio precisa ser avaliado sobre a posicao ATUAL de cada veiculo: filtrar
+    // antes de reduzir a ultima leitura faria um veiculo que ja saiu do raio
+    // aparecer com uma posicao antiga.
     const result = await query(
-      `SELECT DISTINCT ON (vp.vehicle_id)
-         vp.vehicle_id,
+      `WITH latest AS (
+         SELECT DISTINCT ON (vp.vehicle_id)
+           vp.vehicle_id, vp.geom, vp.recorded_at
+         FROM vehicle_positions vp
+         ORDER BY vp.vehicle_id, vp.recorded_at DESC
+       )
+       SELECT
+         l.vehicle_id,
          v.plate,
-         ST_Y(vp.geom) AS lat,
-         ST_X(vp.geom) AS lng,
-         ST_Distance(vp.geom::geography, ST_MakePoint($1, $2)::geography) AS distance_meters,
-         vp.recorded_at
-       FROM vehicle_positions vp
-       JOIN vehicles v ON v.id = vp.vehicle_id
-       WHERE ST_DWithin(vp.geom::geography, ST_MakePoint($1, $2)::geography, $3)
-       ORDER BY vp.vehicle_id, vp.recorded_at DESC`,
+         ST_Y(l.geom) AS lat,
+         ST_X(l.geom) AS lng,
+         ST_Distance(l.geom::geography, ST_MakePoint($1, $2)::geography) AS distance_meters,
+         l.recorded_at
+       FROM latest l
+       JOIN vehicles v ON v.id = l.vehicle_id
+       WHERE ST_DWithin(l.geom::geography, ST_MakePoint($1, $2)::geography, $3)
+       ORDER BY distance_meters ASC`,
       [lng, lat, radiusMeters],
     );
     res.json({ data: result.rows });
