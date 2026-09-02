@@ -4,3 +4,5 @@ dist/
 *.log
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+demo/dist/
+demo/moblytix-demo.html

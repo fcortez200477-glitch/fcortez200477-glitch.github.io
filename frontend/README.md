@@ -76,9 +76,30 @@ Em produção, aponte `VITE_API_URL` para a URL pública da API (ex.: `https://a
 e garanta que essa origem esteja liberada no `CORS_ORIGIN` do backend. Por ser um SPA com
 rotas no cliente, o servidor estático precisa redirecionar todas as rotas para `index.html`.
 
+## Demonstração sem backend
+
+Para apresentações a clientes ou avaliação da interface, existe uma build que gera a
+aplicação navegável num **único arquivo HTML**, sem precisar de API nem banco:
+
+```bash
+npm run build:demo    # gera demo/moblytix-demo.html
+```
+
+O arquivo pode ser aberto direto no navegador, anexado num e-mail ou hospedado em
+qualquer lugar. O código da aplicação não muda — [`demo/vite.demo.config.ts`](./demo/vite.demo.config.ts)
+apenas troca, **nesta build**, três coisas: a camada de API pelo mock em
+[`demo/mock-api.ts`](./demo/mock-api.ts), o `BrowserRouter` por `HashRouter` (hospedagem
+estática não reescreve rotas) e remove a camada de tiles (páginas publicadas costumam
+bloquear imagens externas; o mapa fica com uma malha e mantém rotas e marcadores).
+
+As respostas em [`demo/data.json`](./demo/data.json) foram capturadas de uma execução real
+da API sobre PostgreSQL/PostGIS, então os números são coerentes entre si. As escritas
+(cadastros, mudança de status) funcionam em memória e voltam ao estado inicial ao recarregar.
+
 ## Scripts
 
 - `npm run dev` — servidor de desenvolvimento com HMR
 - `npm run build` — typecheck + build de produção
+- `npm run build:demo` — gera a demonstração em arquivo único (`demo/moblytix-demo.html`)
 - `npm run preview` — serve o build gerado
 - `npm run typecheck` — apenas a verificação de tipos
