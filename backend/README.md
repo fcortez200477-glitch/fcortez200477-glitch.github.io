@@ -107,6 +107,12 @@ docker compose exec api npm run seed
 npm test
 ```
 
+## Painel web
+
+A interface que consome esta API está em [`../frontend`](../frontend) (React + TypeScript + Vite,
+com mapas Leaflet e gráficos Recharts). Suba o backend primeiro e siga o
+[README do frontend](../frontend/README.md).
+
 ## Marca
 
 Logotipo, símbolo, variantes para fundo claro/escuro, versão monocromática e exports PNG
