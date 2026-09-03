@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: mobility_app
       POSTGRES_PASSWORD: change_me
     ports:
-      - '5432:5432'
+      - '4051:5432'
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -29,7 +29,7 @@ services:
       JWT_SECRET: change_me_to_a_long_random_secret
       CORS_ORIGIN: '*'
     ports:
-      - '3000:3000'
+      - '4052:3000'
 
   web:
     build: ./frontend
@@ -37,7 +37,7 @@ services:
     depends_on:
       - api
     ports:
-      - '80:80'
+      - '4053:80'
 
 volumes:
   db_data:
