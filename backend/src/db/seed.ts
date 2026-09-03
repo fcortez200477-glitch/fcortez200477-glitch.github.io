@@ -3,7 +3,7 @@ import { pool } from './pool';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 
-async function seed() {
+export async function seed(): Promise<void> {
   const passwordHash = await bcrypt.hash('Admin@123', env.BCRYPT_SALT_ROUNDS);
 
   await pool.query(
@@ -44,10 +44,24 @@ async function seed() {
   );
 
   logger.info({ lineId, routeId }, 'Seed concluido com sucesso');
-  await pool.end();
 }
 
-seed().catch((err) => {
-  logger.error({ err }, 'Falha ao executar seed');
-  process.exit(1);
-});
+export async function seedIfEmpty(): Promise<void> {
+  const { rows } = await pool.query<{ count: string }>('SELECT count(*) AS count FROM users');
+
+  if (Number(rows[0].count) > 0) {
+    logger.info('Base ja possui dados, seed automatico ignorado.');
+    return;
+  }
+
+  await seed();
+}
+
+if (require.main === module) {
+  seed()
+    .then(() => pool.end())
+    .catch((err) => {
+      logger.error({ err }, 'Falha ao executar seed');
+      process.exit(1);
+    });
+}

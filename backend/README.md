@@ -77,15 +77,19 @@ através de funções nativas (`ST_GeomFromEWKT`, `ST_DWithin`, `ST_Distance`, `
 
 ## Como rodar localmente
 
+Ao iniciar, o servidor (`npm run dev` / `npm start`) sempre aplica as migrations
+pendentes e, se a base ainda estiver vazia (sem nenhum usuário), roda o seed de
+dados de exemplo automaticamente — não é preciso chamar `migrate:up`/`seed` à mão
+no fluxo normal.
+
 ```bash
 cp .env.example .env
 # edite .env com suas credenciais
 
-docker compose up -d db          # sobe apenas o Postgres+PostGIS
+cd .. && docker compose up -d db   # sobe apenas o Postgres+PostGIS (compose na raiz do repo)
+cd backend
 npm install
-npm run migrate:up               # cria o schema (extensões, tabelas, índices, views)
-npm run seed                     # dados de exemplo (usuário admin, linha, veículo, sensor)
-npm run dev                      # API em http://localhost:3000
+npm run dev                      # aplica migrations, semeia se necessário, sobe a API em http://localhost:3000
 ```
 
 Usuário admin criado pelo seed: `admin@urbanmobility.local` / `Admin@123` (troque a senha em produção).
@@ -93,13 +97,27 @@ Usuário admin criado pelo seed: `admin@urbanmobility.local` / `Admin@123` (troq
 Documentação interativa: `http://localhost:3000/api/docs`
 Especificação OpenAPI (JSON): `http://localhost:3000/api/docs.json`
 
-### Com Docker Compose (API + banco)
+### Com Docker Compose (banco + API + painel web)
+
+O `docker-compose.yml` está na raiz do repositório e sobe os três serviços juntos
+(`db`, `api` e `web` — o painel web servido por Nginx na porta 80, com proxy de `/api`
+para o serviço `api`). A API já sobe com o schema em dia e a base semeada na
+primeira execução:
 
 ```bash
+cd ..
 docker compose up -d --build
-docker compose exec api npm run migrate:up
-docker compose exec api npm run seed
 ```
+
+API em `http://localhost:3000`, painel web em `http://localhost`.
+
+### Migrations e seed manuais
+
+Os scripts `npm run migrate:up` / `migrate:down` / `migrate:create` e `npm run seed`
+continuam disponíveis para uso manual (rollback, nova migration, popular dados de
+teste sob demanda) — ver [Scripts](#scripts). Rodados manualmente fora do
+bootstrap do servidor, use `docker compose exec api <script>` quando estiver em
+container.
 
 ## Testes
 

@@ -9,7 +9,7 @@ const envSchema = z.object({
   API_PREFIX: z.string().default('/api/v1'),
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL e obrigatorio'),
-  PGSSL: z.coerce.boolean().default(false),
+  PGSSL: z.preprocess((v) => v === 'true' || v === true, z.boolean()).default(false),
   DB_POOL_MAX: z.coerce.number().default(20),
   DB_IDLE_TIMEOUT_MS: z.coerce.number().default(30000),
 

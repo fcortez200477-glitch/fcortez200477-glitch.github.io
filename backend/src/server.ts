@@ -2,9 +2,13 @@ import { createApp } from './app';
 import { env } from './config/env';
 import { logger } from './config/logger';
 import { checkDatabaseConnection, pool } from './db/pool';
+import { runMigrations } from './db/migrate';
+import { seedIfEmpty } from './db/seed';
 
 async function main() {
   await checkDatabaseConnection();
+  await runMigrations();
+  await seedIfEmpty();
 
   const app = createApp();
   const server = app.listen(env.PORT, () => {
