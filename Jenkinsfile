@@ -13,6 +13,7 @@ pipeline {
             steps{
                 sh 'echo "Derrubando Containers"'
                 sh 'docker-compose down'
+                
             }
         }
         stage('Subir Containers'){
